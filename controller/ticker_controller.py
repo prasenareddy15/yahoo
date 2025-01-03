@@ -6,6 +6,7 @@ from services.rabbitmq_service import send_to_queue
 from models.ticker_model import get_ticker_model
 #from services.db_service import get_db_engine
 def init_ticker_routes(api):
+    print(os.getcwd(),"apple")
     """
     Initialize Ticker routes and attach to Swagger API.
     """

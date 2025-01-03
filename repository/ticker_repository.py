@@ -1,4 +1,6 @@
-from ..services.db_service import get_db_engine
+from services.db_service import get_db_engine
+from flask_restx import text
+print("apple")
 def get_ticker_by_id(ticker_id):
     engine = get_db_engine()
 

@@ -1,6 +1,6 @@
 from flask import Flask
 from services.swagger import configure_swagger
-from controllers.ticker_controller import init_ticker_routes
+from controller.ticker_controller import init_ticker_routes
 
 app = Flask(__name__)
 
