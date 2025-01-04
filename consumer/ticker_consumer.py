@@ -2,6 +2,7 @@ import pika
 import json
 from sqlalchemy import text
 from services.db_service import get_db_engine
+from services.rabbitmq_service import send_response_to_queue
 from datetime import datetime
 
 def execute_query(params):
@@ -24,22 +25,6 @@ def execute_query(params):
         print(users)
         return users
 
-def send_response_to_queue(response_queue, correlation_id, data):
-    """
-    Send the query results to the specified response queue.
-    """
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
-    channel = connection.channel()
-    channel.queue_declare(queue=response_queue,durable=True)
-
-    response_message = {"correlation_id": correlation_id, "data": data}
-
-    channel.basic_publish(
-        exchange='',
-        routing_key=response_queue,
-        body=json.dumps(response_message)
-    )
-    connection.close()
 
 def process_message(ch, method, properties, body):
     """
