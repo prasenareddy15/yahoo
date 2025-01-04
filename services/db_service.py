@@ -17,7 +17,7 @@ password = urllib.parse.quote_plus(password)
 
 # SQLAlchemy connection string
 driver = 'ODBC+Driver+17+for+SQL+Server'
-connection_string = f'mssql+pyodbc://{username}:{password}@{server}/{database}?driver={driver}'
+connection_string = f'mssql+pyodbc://{server}/{database}?driver={driver}&trusted_connection=yes'
 
 # Create database engine
 engine = create_engine(connection_string)

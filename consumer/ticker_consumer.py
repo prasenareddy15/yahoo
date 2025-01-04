@@ -1,53 +1,79 @@
 import pika
 import json
+from sqlalchemy import text
 from services.db_service import get_db_engine
+from datetime import datetime
 
-RABBITMQ_HOST = os.getenv('RABBITMQ_HOST', 'localhost')
+def execute_query(params):
+    """
+    Execute a pre-defined query based on the input parameters.
+    """
+    query = """
+        SELECT [ticker_id], [symbol], [name], [last_updated], [created_at]
+        FROM [yahoo].[dbo].[Ticker_t]
+        WHERE [ticker_id] = :ticker_id
+    """
+    engine = get_db_engine()
+    with engine.connect() as connection:
+        print("katespade")
+        result = connection.execute(text(query), params)
+        users=[
+            {key: (value.isoformat() if isinstance(value, datetime) else value) for key, value in zip(result.keys(), row)}
+            for row in result
+        ]
+        print(users)
+        return users
+
+def send_response_to_queue(response_queue, correlation_id, data):
+    """
+    Send the query results to the specified response queue.
+    """
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+    channel = connection.channel()
+    channel.queue_declare(queue=response_queue,durable=True)
+
+    response_message = {"correlation_id": correlation_id, "data": data}
+
+    channel.basic_publish(
+        exchange='',
+        routing_key=response_queue,
+        body=json.dumps(response_message)
+    )
+    connection.close()
 
 def process_message(ch, method, properties, body):
     """
     Callback to process a message from RabbitMQ.
     """
     message = json.loads(body)
-    query = message.get("query")
     params = message.get("params")
     response_queue = message.get("response_queue")
-
-    # Process the query
+    correlation_id = message.get("correlation_id")
+    print(message)
     try:
-        result = execute_query(query, params)  # Execute DB query
-        send_response_to_queue(response_queue, result)  # Send result to the response queue
+        result = execute_query(params)
+
+        # Send response back to the response queue
+        send_response_to_queue(response_queue, correlation_id, result)
     except Exception as e:
         print(f"Error processing message: {e}")
     
     # Acknowledge the message
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
-def send_response_to_queue(queue_name, result):
-    """
-    Send the result to the response queue.
-    """
-    connection = pika.BlockingConnection(pika.ConnectionParameters(RABBITMQ_HOST))
-    channel = connection.channel()
-    channel.queue_declare(queue=queue_name, durable=True)
-    channel.basic_publish(
-        exchange='',
-        routing_key=queue_name,
-        body=json.dumps(result),
-        properties=pika.BasicProperties(
-            delivery_mode=2,  # Make message persistent
-        )
-    )
-    connection.close()
-
 def start_consumer():
     """
-    Start the RabbitMQ consumer for the 'ticker_queue'.
+    Start RabbitMQ consumer.
     """
-    connection = pika.BlockingConnection(pika.ConnectionParameters(RABBITMQ_HOST))
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
     channel = connection.channel()
-    channel.queue_declare(queue='ticker_queue', durable=True)
 
-    channel.basic_consume(queue='ticker_queue', on_message_callback=process_message)
+    channel.queue_declare(queue="ticker_queue",durable=True)
+
+    channel.basic_consume(queue="ticker_queue", on_message_callback=process_message)
+
     print("Waiting for messages...")
     channel.start_consuming()
+
+if __name__ == "__main__":
+    start_consumer()
