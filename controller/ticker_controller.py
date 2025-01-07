@@ -14,7 +14,7 @@ def init_ticker_routes(api):
     @api.route('/ticker/<int:ticker_id>')
     class Ticker(Resource):
         @api.marshal_with(ticker_model)
-        def get(self, ticker_id):
+        async def get(self, ticker_id):
             """
             Send ticker details to RabbitMQ and wait for the response.
             """
@@ -33,10 +33,10 @@ def init_ticker_routes(api):
             }
 
             # Send message to RabbitMQ
-            send_to_queue("ticker_queue", message)
+            await send_to_queue("ticker_queue", message)
 
             # Wait for response from RabbitMQ
-            response = wait_for_response("response_queue",correlation_id)
+            response = await wait_for_response("response_queue",correlation_id)
 
             return response, 200
 

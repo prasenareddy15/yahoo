@@ -11,3 +11,11 @@ def get_ticker_model(api):
         'last_updated': fields.DateTime(description='Last updated timestamp'),
         'created_at': fields.DateTime(description='Creation timestamp')
     })
+def ticker_yfetch_model(api):
+    """
+    Define the response model for the API.
+    """
+    return api.model('ticker_yfetch', {
+        'status': fields.String(required=True, description='The status of the operation (success or error)'),
+        'message': fields.String(required=True, description='Message with additional information about the operation')
+    })
