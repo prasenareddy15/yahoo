@@ -12,7 +12,7 @@ async def execute_query(params):
     """
     query = """
         SELECT [ticker_id], [symbol], [name], [last_updated], [created_at]
-        FROM [yahoo].[dbo].[Ticker_t]
+        FROM [yahoo].[dbo].[stock_daily]
         WHERE [ticker_id] = :ticker_id
     """
     engine = get_db_engine()

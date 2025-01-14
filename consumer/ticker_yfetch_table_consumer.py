@@ -21,7 +21,7 @@ async def fetch_ticker_details(ticker_symbol):
     }
 
     # Fetch 5-year historical price data
-    historical_data = ticker.history(period="5y").reset_index()
+    historical_data = ticker.history(period="max").reset_index()
     price_data = []
     for _, row in historical_data.iterrows():
         price_data.append({
@@ -40,13 +40,13 @@ async def insert_ticker_data(ticker_details, price_data):
     """
     # Define your SQL queries
     query_ticker = text("""
-        INSERT INTO [yahoo].[dbo].[Ticker_t] (symbol, name, last_updated)
+        INSERT INTO [yahoo].[dbo].[stock_daily] (symbol, name, last_updated)
         OUTPUT inserted.ticker_id
         VALUES (:symbol, :name, :last_updated)
     """)
 
     query_price = text("""
-        INSERT INTO [yahoo].[dbo].[load_t] (ticker_id, [date], [open], [high], [low], [close], [volume])
+        INSERT INTO [yahoo].[dbo].[stock_master] (ticker_id, [date], [open], [high], [low], [close], [volume])
         VALUES (:ticker_id, :date, :open, :high, :low, :close, :volume)
     """)
 
@@ -56,7 +56,7 @@ async def insert_ticker_data(ticker_details, price_data):
         # Check if the ticker already exists (optional part, can be removed)
         with engine.connect() as connection:
             result = connection.execute(
-                text("SELECT COUNT(*) FROM [yahoo].[dbo].[Ticker_t] WHERE symbol = :symbol"),
+                text("SELECT COUNT(*) FROM [yahoo].[dbo].[stock_daily] WHERE symbol = :symbol"),
                 {"symbol": ticker_details["symbol"]}
             ).fetchone()
             
