@@ -3,12 +3,12 @@ from sqlalchemy import text
 from datetime import datetime, timedelta
 import yfinance as yf
 import asyncio
-from services.db_service import get_db_engine
-from consumer.ticker_yfetch_table_consumer import fetch_ticker_details
+from services.db_service import get_db_engine 
+from repository.scheduler_repo import get_all_tickers,fetch_ticker_details
 async def update_ticker(ticker_id, symbol, last_updated):
     try:
         # Fetch updated data from Yahoo Finance
-        details, historical_data = await fetch_ticker_details(symbol)
+        historical_data = await fetch_ticker_details(symbol,last_updated)
 
         # Insert or update historical data in the database
         await insert_historical_data(ticker_id, historical_data)
@@ -30,9 +30,7 @@ async def run_scheduler():
             tickers = await get_all_tickers()
             for ticker in tickers:
                 # Skip if already up-to-date
-                if ticker["last_updated"].date() == datetime.now().date():
-                    continue
-
+                #print(len(tickers))
                 # Update each ticker
                 await update_ticker(ticker["ticker_id"], ticker["symbol"], ticker["last_updated"])
 
