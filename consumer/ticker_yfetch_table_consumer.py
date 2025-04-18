@@ -53,42 +53,48 @@ async def insert_ticker_data(ticker_details, price_data):
     engine = get_db_engine()
 
     try:
-        # Check if the ticker already exists (optional part, can be removed)
-        with engine.connect() as connection:
-            result = connection.execute(
+        async with engine.connect() as connection:
+            #print("Checking if ticker exists...")
+
+            # Properly await the query execution to check if the ticker already exists
+            result = await connection.execute(
                 text("SELECT COUNT(*) FROM [yahoo].[dbo].[stock_daily] WHERE symbol = :symbol"),
                 {"symbol": ticker_details["symbol"]}
-            ).fetchone()
-            
-            if result[0] > 0:
+            )
+            #print(result.fetchone(),"******res")
+            # Fetch the count result
+            count = result.fetchone() # Get the scalar result directly
+            count = count[0] if count is not None else 0
+            #print(f"Count of existing tickers: {count}")
+
+            if count > 0:
                 print(f"Ticker {ticker_details['symbol']} already exists in the database.")
                 return  # Exit if the ticker already exists
 
-            # Ensure datetime fields are in a compatible format
-            #ticker_details["created_at"] = datetime.now()  # Add current timestamp for created_at
+            # Format the datetime fields before inserting
             ticker_details["last_updated"] = ticker_details["last_updated"].strftime("%Y-%m-%d %H:%M:%S")
-            #ticker_details["created_at"] = ticker_details["created_at"].strftime("%Y-%m-%d %H:%M:%S")
 
-            # Log the ticker details
-            print(f"Inserting ticker details for symbol: {ticker_details['symbol']}, Price data length: {len(price_data)}")
-            print(f"Ticker details: {ticker_details}")
+            # Log ticker details for insertion
+            #print(f"Inserting ticker details for symbol: {ticker_details['symbol']}, Price data length: {len(price_data)}")
+            #print(f"Ticker details: {ticker_details}")
 
             # Insert ticker details into the database
-            result=connection.execute(query_ticker, ticker_details)
-            ticker_id = result.fetchone()[0]  # Fetch the first row and get the ticker_id
-            print(f"Generated ticker_id: {ticker_id}")
+            result = await connection.execute(query_ticker, ticker_details)
+            ticker_id = result.scalar()  # Get the ticker_id returned by the INSERT statement
+            #print(f"Generated ticker_id: {ticker_id}")
 
             # Insert price data into the database
-            print(f"Inserting price data: {len(price_data)}")
+            #print(f"Inserting price data for ticker_id {ticker_id}, data count: {len(price_data)}")
             for price in price_data:
                 price["ticker_id"] = ticker_id
-                price["date"] = price["date"].strftime("%Y-%m-%d %H:%M:%S")  # Ensure date is formatted for SQL
+                price["date"] = price["date"].strftime("%Y-%m-%d %H:%M:%S")  # Ensure the date is formatted for SQL
 
-                # Log each price insert
-                connection.execute(query_price, price)
+                # Insert each price entry asynchronously
+                await connection.execute(query_price, price)
 
-            # If using SQLAlchemy with a connection, commit is not strictly necessary, unless in a transaction.
-            connection.commit()  # Explicitly commit the transaction
+            # Commit the transaction explicitly
+            await connection.commit()  # Explicitly commit the transaction
+            print("Data insertion completed successfully.")
 
     except Exception as e:
         print(f"Error inserting data for {ticker_details['symbol']}: {e}")
@@ -106,6 +112,7 @@ async def process_message(message: aio_pika.IncomingMessage):
             # Fetch ticker details and historical data
             ticker_symbol = params.get("ticker_symbol")
             ticker_details, price_data = await fetch_ticker_details(ticker_symbol)
+            #print(ticker_details,len(price_data),"***********************")
             # Insert data into the database
             await insert_ticker_data(ticker_details, price_data)
             # Prepare response

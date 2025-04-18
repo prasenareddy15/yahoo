@@ -3,7 +3,8 @@ import json
 import pika
 import uuid
 from models.ticker_model import get_ticker_model
-from services.rabbitmq_service import send_to_queue,wait_for_response
+from services.rabbitmq_service import send_to_queue, wait_for_response
+import asyncio
 
 def init_ticker_routes(api):
     """
@@ -14,29 +15,26 @@ def init_ticker_routes(api):
     @api.route('/ticker/<int:ticker_id>')
     class Ticker(Resource):
         @api.marshal_with(ticker_model)
-        async def get(self, ticker_id):
-            """
-            Send ticker details to RabbitMQ and wait for the response.
-            """
-            # Validate input
+        def get(self, ticker_id):
             if not ticker_id:
                 return {"message": "ticker_id is required"}, 400
 
-            # Create a unique correlation ID
             correlation_id = str(uuid.uuid4())
-
-            # Create message
             message = {
-                "params": {"ticker_id": ticker_id},  # Only send parameters
+                "params": {"ticker_id": ticker_id},
                 "response_queue": "response_queue",
                 "correlation_id": correlation_id
             }
 
-            # Send message to RabbitMQ
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            response = loop.run_until_complete(self.send_and_wait(message, correlation_id))
+            loop.close()
+            print(response)
+            if(response):
+                return(response[0])
+            return {"message": "No data found"}, 404
+
+        async def send_and_wait(self, message, correlation_id):
             await send_to_queue("ticker_queue", message)
-
-            # Wait for response from RabbitMQ
-            response = await wait_for_response("response_queue",correlation_id)
-
-            return response, 200
-
+            return await wait_for_response("response_queue", correlation_id,timeout=5)

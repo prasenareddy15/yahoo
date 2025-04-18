@@ -37,7 +37,8 @@ def ticker_yfetch_routes(api):
             print(ticker_symbol, "symbol")
             loop = asyncio.new_event_loop()  # Create a new event loop
             asyncio.set_event_loop(loop)
-            loop.run_until_complete(self.send_and_wait(message, correlation_id))
+            response=loop.run_until_complete(self.send_and_wait(message, correlation_id))
+            return(response)
 
         async def send_and_wait(self, message, correlation_id):
             """
@@ -47,7 +48,7 @@ def ticker_yfetch_routes(api):
             await send_to_queue("ticker_yfetch_queue", message)  # Await async function
 
             # Wait for response from RabbitMQ
-            response = await wait_for_response("ticker_yfetch_response_queue", correlation_id)  # Await async function
+            response = await wait_for_response("ticker_yfetch_response_queue", correlation_id, timeout=15)  # Await async function
 
             return response  # Return the response after waiting
 

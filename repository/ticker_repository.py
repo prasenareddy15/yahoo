@@ -1,5 +1,5 @@
 from services.db_service import get_db_engine
-from flask_restx import text
+from sqlalchemy import text
 print("apple")
 def get_ticker_by_id(ticker_id):
     engine = get_db_engine()
@@ -11,5 +11,5 @@ def get_ticker_by_id(ticker_id):
     """
     with engine.connect() as connection:
         result = connection.execute(text(query), {"ticker_id": ticker_id})
-        ticker = [dict(row) for row in result]
+        ticker = [dict(row._mapping) for row in result]
     return ticker
