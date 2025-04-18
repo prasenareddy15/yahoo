@@ -1,6 +1,7 @@
 import aio_pika
 import json
 from sqlalchemy import text
+print("april2")
 from services.db_service import get_db_engine
 from services.rabbitmq_service import send_response_to_queue
 from datetime import datetime
@@ -52,6 +53,7 @@ async def start_consumer():
     async with connection:
         channel = await connection.channel()  # Create a channel
         queue = await channel.declare_queue("ticker_queue", durable=True)  # Declare queue
+        print("april")
         await queue.consume(process_message)  # Start consuming messages
         await asyncio.Future()  # Keep the consumer running
 

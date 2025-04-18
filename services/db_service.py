@@ -4,14 +4,14 @@ from dotenv import load_dotenv
 import urllib
 
 # Load environment variables
-load_dotenv()
-
+k=load_dotenv(dotenv_path=r"C:\Users\mavul\Documents\known\yahoo\env.env")
+print(k,'april3')
 # Get database connection details from .env
 server = os.getenv('DB_SERVER')
 database = os.getenv('DB_DATABASE')
 username = os.getenv('DB_USERNAME')
 password = os.getenv('DB_PASSWORD')
-
+print(server,database,username,password)
 # URL encoding for the password
 password = urllib.parse.quote_plus(password)
 

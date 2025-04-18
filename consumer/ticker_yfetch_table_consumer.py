@@ -12,7 +12,7 @@ async def fetch_ticker_details(ticker_symbol):
     Fetch ticker details and historical price data from Yahoo Finance.
     """
     ticker = yf.Ticker(ticker_symbol)
-    
+    print(ticker.info.get("longName", "Unknown"),"april233")
     # Fetch ticker details
     details = {
         "symbol": ticker_symbol,
